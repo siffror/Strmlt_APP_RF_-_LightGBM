@@ -5,16 +5,19 @@ import numpy as np
 from PIL import Image
 import gdown
 
+import os
+
 # Cachea modellen så att den inte laddas om varje gång
 @st.cache_resource
 def load_cached_model():
     # Google Drive fil-ID för din modell
     file_id = '194s6DLo76VPeuDOCDceNaq84B39tEU8a'  # Fil-ID från din Google Drive-länk
-    url = f'https://drive.google.com/uc?export=download&id={file_id}'
+    url = f'https://drive.google.com/uc?export=download&id={file_id}'  # Omvandla till rätt URL
     output = 'my_trained_model.h5'
 
     # Ladda ner modellen om den inte finns lokalt
-    gdown.download(url, output, quiet=False)
+    if not os.path.exists(output):
+        gdown.download(url, output, quiet=False)
 
     # Ladda och returnera modellen
     return load_model(output)
