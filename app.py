@@ -1,102 +1,44 @@
 import streamlit as st
-import joblib
-import numpy as np
-from PIL import Image, ImageEnhance
+from tensorflow.keras.models import load_model
 from streamlit_drawable_canvas import st_canvas
+import numpy as np
+from PIL import Image
 
-# === Ladda LightGBM-modellen (Cachas för snabbare inferens) ===
-@st.cache_resource
-def load_model():
-    """Laddar modellen en gång och cachar den."""
-    return joblib.load("lightgbm_mnist.pkl")
+# Ladda modellen från en specifik plats
+model_path = 'my_trained_model.h5'
+model = load_model(model_path)
 
-lgb_model = load_model()
+# Titeln på appen
+st.title("Handskriven Sifferigenkänning med CNN")
+st.write("Rita en siffra i fönstret nedan och modellen kommer att förutsäga vilken siffra det är.")
 
-st.title("🖌️ MNIST Sifferklassificering - Rita eller ladda upp en bild!")
+# Rita en siffra på canvas
+canvas_result = st_canvas(
+    fill_color="black",  # Fyllningsfärg
+    stroke_width=20,  # Tjockleken på pennan
+    stroke_color="white",  # Pennans färg
+    background_color="black",  # Bakgrundsfärg
+    height=280,  # Höjd på canvas
+    width=280,  # Bredd på canvas
+    drawing_mode="freedraw",  # Låt användaren rita fritt
+    key="canvas"
+)
 
-# === Välj inmatningsmetod ===
-option = st.radio("Välj inmatningsmetod:", ("✏️ Rita en siffra", "📤 Ladda upp en bild"))
-
-# === Om användaren väljer att rita ===
-if option == "✏️ Rita en siffra":
-    st.sidebar.header("✏️ Ritverktyg")
-    stroke_width = st.sidebar.slider("Pennans tjocklek:", 1, 25, 10)
-    bg_color = st.sidebar.color_picker("Bakgrundsfärg", "#000000")  # Svart bakgrund
-    drawing_mode = st.sidebar.selectbox("Ritläge", ("freedraw", "line"))
-
-    # 📌 Skapa ritcanvas
-    canvas_result = st_canvas(
-        fill_color="rgba(255, 255, 255, 0)",  # Transparent
-        stroke_width=stroke_width,
-        stroke_color="#FFFFFF",  # Vit penna
-        background_color=bg_color,
-        width=280,  # 10x större än MNIST (för bättre upplösning)
-        height=280,
-        drawing_mode=drawing_mode,
-        key="canvas",
-    )
-
-    # === Bearbeta den ritade siffran ===
-    if canvas_result.image_data is not None:
-        # 📌 1. Konvertera bilden till PIL-format
-        image = Image.fromarray(canvas_result.image_data.astype("uint8"), "RGBA")
-
-        # 📌 2. Konvertera till gråskala och justera kontrasten
-        image = image.convert("L")  # Gråskala
-        enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(2.0)  # Öka kontrasten
-
-        # 📌 3. Ändra storlek till 28x28 (MNIST-format)
-        image = image.resize((28, 28))
-
-        # 📌 4. Normalisera bilden (0-1) och platta ut till 1D-vektor
-        image = np.array(image, dtype=np.float32) / 255.0
-        image = image.reshape(1, -1)
-
-        # 📌 5. Visa den förbehandlade bilden
-        st.image(image.reshape(28, 28), caption="🖼 Förbehandlad bild", width=100)
-
-        # === Gör prediktion med LightGBM ===
-        pred_lgb = lgb_model.predict(image.astype(np.float32))[0]
-
-        # 📌 6. Klassificeringsresultat
-        st.markdown("---")
-        st.subheader("📊 Klassificeringsresultat:")
-        st.write(f"**🔵 LightGBMs Prediktion:** {pred_lgb}")
-        st.success(f"✅ Modellen klassificerade siffran som **{pred_lgb}**!")
-
-    else:
-        st.warning("✏️ Rita en siffra på canvasen för att klassificera den!")
-
-# === Om användaren väljer att ladda upp en bild ===
-elif option == "📤 Ladda upp en bild":
-    uploaded_file = st.file_uploader("Ladda upp en bild", type=["png", "jpg", "jpeg"])
-
-    if uploaded_file is not None:
-        try:
-            # 📌 1. Visa originalbild
-            image = Image.open(uploaded_file)
-            st.image(image, caption="🖼 Originalbild", use_column_width=True)
-
-            # 📌 2. Förbehandla bilden
-            image = image.convert("L")  # Gråskala
-            enhancer = ImageEnhance.Contrast(image)
-            image = enhancer.enhance(2.0)  # Öka kontrasten
-            image = image.resize((28, 28))
-            image = np.array(image, dtype=np.float32) / 255.0  # Normalisera
-            image = image.reshape(1, -1)
-
-            # 📌 3. Gör prediktion
-            pred_lgb = lgb_model.predict(image.astype(np.float32))[0]
-
-            # 📌 4. Klassificeringsresultat
-            st.markdown("---")
-            st.subheader("📊 Klassificeringsresultat:")
-            st.write(f"**🔵 LightGBMs Prediktion:** {pred_lgb}")
-            st.success(f"✅ Modellen klassificerade siffran som **{pred_lgb}**!")
-
-        except Exception as e:
-            st.error(f"🚨 Ett fel uppstod: {e}")
-
-    else:
-        st.warning("⚠️ Ladda upp en bild för att göra en klassificering.")
+# När användaren ritar en siffra, gör en förutsägelse
+if canvas_result.image_data is not None:
+    # Konvertera den ritade bilden till en PIL-bild
+    image = Image.fromarray(canvas_result.image_data.astype("uint8"))
+    
+    # Förbehandla bilden
+    image = image.convert("L")  # Konvertera till gråskala
+    image = image.resize((28, 28))  # Ändra storlek till 28x28
+    image_array = np.array(image)  # Omvandla till array
+    image_array = image_array.reshape(1, 28, 28, 1)  # Omforma till (1, 28, 28, 1)
+    image_array = image_array.astype("float32") / 255.0  # Normalisera pixelvärden
+    
+    # Gör en förutsägelse med modellen
+    prediction = model.predict(image_array)
+    predicted_label = np.argmax(prediction, axis=1)[0]
+    
+    # Visa resultatet
+    st.write(f"Modellen förutspår att detta är siffran: {predicted_label}")
