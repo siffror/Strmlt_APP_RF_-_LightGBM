@@ -3,16 +3,23 @@ from tensorflow.keras.models import load_model
 from streamlit_drawable_canvas import st_canvas
 import numpy as np
 from PIL import Image
+import gdown
 
-# Ladda modellen från en specifik plats
-model_path = 'https://github.com/siffror/Strmlt_APP_RF_-_LightGBM/blob/main/my_trained_model.h5'
-model = load_model(model_path)
+# Google Drive fil-ID för din modell
+file_id = '194s6DLo76VPeuDOCDceNaq84B39tEU8a'  # Fil-ID från din Google Drive-länk
+url = f'https://drive.google.com/uc?export=download&id={file_id}'
+
+# Spara modellen från Google Drive
+output = 'my_trained_model.h5'
+
 # Ladda ner modellen
-response = requests.get(url)
-open('my_trained_model.h5', 'wb').write(response.content)
+gdown.download(url, output, quiet=False)
 
 # Ladda modellen
-model = load_model('my_trained_model.h5')
+model = load_model(output)
+
+# Nu kan du använda modellen för att göra förutsägelser i din app
+
 # Titeln på appen
 st.title("Handskriven Sifferigenkänning med CNN")
 st.write("Rita en siffra i fönstret nedan och modellen kommer att förutsäga vilken siffra det är.")
