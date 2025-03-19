@@ -1,3 +1,4 @@
+tensorflow==2.10.0  
 streamlit
 joblib
 numpy
@@ -6,4 +7,3 @@ lightgbm
 pillow
 scikit-learn
 streamlit-drawable-canvas
-tensorflow  
