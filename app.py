@@ -5,9 +5,14 @@ import numpy as np
 from PIL import Image
 
 # Ladda modellen från en specifik plats
-model_path = 'my_trained_model.h5'
+model_path = 'https://github.com/your_username/your_repository/raw/main/my_trained_model.h5'
 model = load_model(model_path)
+# Ladda ner modellen
+response = requests.get(url)
+open('my_trained_model.h5', 'wb').write(response.content)
 
+# Ladda modellen
+model = load_model('my_trained_model.h5')
 # Titeln på appen
 st.title("Handskriven Sifferigenkänning med CNN")
 st.write("Rita en siffra i fönstret nedan och modellen kommer att förutsäga vilken siffra det är.")
