@@ -5,20 +5,22 @@ import numpy as np
 from PIL import Image
 import gdown
 
-# Google Drive fil-ID för din modell
-file_id = '194s6DLo76VPeuDOCDceNaq84B39tEU8a'  # Fil-ID från din Google Drive-länk
-url = f'https://drive.google.com/uc?export=download&id={file_id}'
+# Cachea modellen så att den inte laddas om varje gång
+@st.cache_resource
+def load_cached_model():
+    # Google Drive fil-ID för din modell
+    file_id = '194s6DLo76VPeuDOCDceNaq84B39tEU8a'  # Fil-ID från din Google Drive-länk
+    url = f'https://drive.google.com/uc?export=download&id={file_id}'
+    output = 'my_trained_model.h5'
 
-# Spara modellen från Google Drive
-output = 'my_trained_model.h5'
+    # Ladda ner modellen om den inte finns lokalt
+    gdown.download(url, output, quiet=False)
 
-# Ladda ner modellen
-gdown.download(url, output, quiet=False)
+    # Ladda och returnera modellen
+    return load_model(output)
 
-# Ladda modellen
-model = load_model(output)
-
-# Nu kan du använda modellen för att göra förutsägelser i din app
+# Ladda modellen (den cachas första gången)
+model = load_cached_model()
 
 # Titeln på appen
 st.title("Handskriven Sifferigenkänning med CNN")
@@ -41,7 +43,7 @@ if canvas_result.image_data is not None:
     # Konvertera den ritade bilden till en PIL-bild
     image = Image.fromarray(canvas_result.image_data.astype("uint8"))
     
-    # Förbehandla bilden
+    # Förbehandla bilden (cacheade steg för effektivitet)
     image = image.convert("L")  # Konvertera till gråskala
     image = image.resize((28, 28))  # Ändra storlek till 28x28
     image_array = np.array(image)  # Omvandla till array
